@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { AlertCircle, RefreshCw, Lock, X, LogOut } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { AlertCircle, RefreshCw, Lock, X, LogOut, Maximize, Minimize } from "lucide-react";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./components/Dashboard";
 import SurchargeCalculator from "./components/SurchargeCalculator";
@@ -27,6 +27,23 @@ export default function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"dashboard" | "calculator" | "quotation" | "registration" | "customers" | "services" | "history" | "admin" | "reconciliation">("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!isFullscreen) {
+      document.documentElement.requestFullscreen?.();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen?.();
+      setIsFullscreen(false);
+    }
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    const onFsChange = () => { if (!document.fullscreenElement) setIsFullscreen(false); };
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -107,7 +124,7 @@ export default function App() {
     }
 
     switch (activeTab) {
-      case "dashboard":    return <Dashboard />;
+      case "dashboard":    return <Dashboard isFullscreen={isFullscreen} />;
       case "calculator":   return <SurchargeCalculator onAddToQuotation={handleAddToQuotation} />;
       case "quotation":    return <QuotationModule />;
       case "customers":    return isAdminMode && userRole !== 'guest' ? <CustomerList onCustomerToQuote={handleCustomerToQuote} /> : <Dashboard />;
@@ -122,20 +139,32 @@ export default function App() {
 
   return (
     <div className={S.root}>
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={(tab) => { setActiveTab(tab); if (isMobile) setIsMobileMenuOpen(false); }}
-        collapsed={sidebarCollapsed}
-        setCollapsed={setSidebarCollapsed}
-        user={isAdminMode ? { displayName: userDisplayName || 'User', email: `${userRole}@local`, role: userRole } : null}
-        onLogout={handleLogout}
-        onLoginClick={() => setShowLoginModal(true)}
-        isMobile={isMobile}
-        isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
-      />
+      {!isFullscreen && (
+        <Sidebar
+          activeTab={activeTab}
+          setActiveTab={(tab) => { setActiveTab(tab); if (isMobile) setIsMobileMenuOpen(false); }}
+          collapsed={sidebarCollapsed}
+          setCollapsed={setSidebarCollapsed}
+          user={isAdminMode ? { displayName: userDisplayName || 'User', email: `${userRole}@local`, role: userRole } : null}
+          onLogout={handleLogout}
+          onLoginClick={() => setShowLoginModal(true)}
+          isMobile={isMobile}
+          isOpen={isMobileMenuOpen}
+          onClose={() => setIsMobileMenuOpen(false)}
+        />
+      )}
 
       <div className={S.mainColumn}>
+        {/* Fullscreen toggle (PC only) */}
+        {!isMobile && activeTab === 'dashboard' && (
+          <button
+            onClick={toggleFullscreen}
+            title={isFullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'}
+            className="fixed top-3 right-3 z-50 p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-white shadow-lg backdrop-blur transition-all hover:scale-105"
+          >
+            {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+          </button>
+        )}
         {isMobile && (
           <header className={S.mobileHeader}>
             <div className={S.mobileHeaderLeft}>
