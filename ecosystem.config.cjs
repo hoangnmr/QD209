@@ -5,6 +5,7 @@ module.exports = {
     interpreter: 'node',
     interpreter_args: '--import tsx',
     cwd: '/var/www/QD209',
+    exec_mode: 'fork',
     env: {
       NODE_ENV: 'production',
       PORT: 3000,

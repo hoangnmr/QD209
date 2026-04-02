@@ -6,11 +6,23 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
 
       - name: Deploy to server via SSH
         uses: appleboy/ssh-action@v1
@@ -21,10 +33,9 @@ jobs:
           port: 22
           script: |
             set -e
-
             APP_DIR="/var/www/QD209"
 
-            # Clone or pull latest code
+            # Pull latest code
             if [ -d "${APP_DIR}/.git" ]; then
               cd ${APP_DIR}
               git fetch origin main
@@ -35,5 +46,50 @@ jobs:
               cd ${APP_DIR}
             fi
 
-            # Run deployment
-            bash deploy/deploy.sh
+            # Install production dependencies only
+            npm ci --omit=dev
+            npm ls tsx 2>/dev/null || npm install tsx
+
+      - name: Copy built frontend to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 103.7.43.98
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          source: "frontend/dist/"
+          target: "/var/www/QD209/"
+          overwrite: true
+
+      - name: Start application
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 103.7.43.98
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            set -e
+            APP_DIR="/var/www/QD209"
+            cd ${APP_DIR}
+
+            # Setup Nginx config
+            mkdir -p /etc/nginx/snippets
+            cp deploy/nginx.conf /etc/nginx/snippets/qd209.conf
+
+            NGINX_TANTHUAN="/etc/nginx/sites-available/tanthuan"
+            if ! grep -q "qd209.conf" ${NGINX_TANTHUAN} 2>/dev/null; then
+              sed -i '/listen 443 ssl/,/^}/ {
+                /^}/ i\    # QD209 Application\n    include /etc/nginx/snippets/qd209.conf;
+              }' ${NGINX_TANTHUAN}
+            fi
+            nginx -t && systemctl reload nginx
+
+            # Restart app with PM2
+            export NODE_ENV=production
+            if pm2 describe qd209 > /dev/null 2>&1; then
+              pm2 restart ecosystem.config.cjs --update-env
+            else
+              pm2 start ecosystem.config.cjs
+            fi
+            pm2 save

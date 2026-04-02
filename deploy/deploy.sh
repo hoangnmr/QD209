@@ -22,9 +22,14 @@ npm ci --omit=dev
 # Also need tsx for running TypeScript in production
 npm ls tsx 2>/dev/null || npm install tsx
 
-# 2. Build frontend
-echo "[2/5] Building frontend..."
-npx vite build --config frontend/vite.config.ts
+# 2. Build frontend (skip if dist already exists from CI)
+if [ ! -d "frontend/dist" ]; then
+    echo "[2/5] Building frontend..."
+    export NODE_OPTIONS="--max-old-space-size=1024"
+    npx vite build --config frontend/vite.config.ts
+else
+    echo "[2/5] Frontend already built (from CI). Skipping build."
+fi
 
 # 3. Setup Nginx config (idempotent)
 echo "[3/5] Updating Nginx config..."
