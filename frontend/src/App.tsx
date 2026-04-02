@@ -146,7 +146,7 @@ export default function App() {
                   <span className={S.hamburgerLine} />
                 </div>
               </button>
-              <span className={S.mobileTitle}>TAN THUAN</span>
+              <span className={S.mobileTitle}>TAN THUAN ECOSYSTEM</span>
             </div>
             {isAdminMode
               ? <div style={{display:'flex',alignItems:'center',gap:8}}>
