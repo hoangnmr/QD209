@@ -42,7 +42,7 @@ const CHART_RANGES: { key: ChartRange; label: string }[] = [
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-const Dashboard: React.FC<{ isFullscreen?: boolean }> = ({ isFullscreen = false }) => {
+const Dashboard: React.FC = () => {
   const { prices, tiers, bulkTiers } = useAppContext();
   const [chartRange, setChartRange] = useState<ChartRange>('month');
 
@@ -88,29 +88,9 @@ const Dashboard: React.FC<{ isFullscreen?: boolean }> = ({ isFullscreen = false 
   );
 
   return (
-    <div className={isFullscreen ? "p-4 lg:p-6 bg-slate-50 min-h-screen" : S.wrapper}>
+    <div className={S.wrapper}>
 
       {/* ═══ SECTION 1: HERO ═══ */}
-      {isFullscreen ? (
-        /* Fullscreen: compact hero banner */
-        <div className="flex items-center justify-between bg-gradient-to-r from-[#0a2a4a] to-[#0d3b66] text-white rounded-xl px-6 py-4 mb-4 shadow-lg">
-          <div>
-            <h1 className="text-lg font-black tracking-tight">Hệ Thống Phụ Thu Nhiên Liệu</h1>
-            <p className="text-white/50 text-xs font-semibold uppercase tracking-wide">Cảng Sài Gòn — Tân Thuận Terminal</p>
-          </div>
-          <div className="flex items-center gap-6">
-            <div className="text-right">
-              <p className="text-white/60 text-xs font-semibold mb-0.5">Giá Dầu DO 0,05S-II</p>
-              <span className="text-3xl font-black tracking-tight">{latestPrice ? formatPrice(latestPrice.priceV1) : '—'}</span>
-              <span className="text-white/50 font-bold text-sm ml-2">VND/Lít</span>
-            </div>
-            <div className="text-center bg-white/10 rounded-xl px-4 py-2">
-              <p className="text-white/60 text-[10px] font-bold uppercase tracking-wider">Bậc</p>
-              <span className="text-3xl font-black text-amber-400">{tierIndex}</span>
-            </div>
-          </div>
-        </div>
-      ) : (
       <motion.div {...motionFadeUp} transition={{ duration: 0.5 }}>
         <h1 className={S.heroTitle}>Hệ Thống Phụ Thu Nhiên Liệu</h1>
         <p className={S.heroSubtitle}>Cảng Sài Gòn — Tân Thuận Terminal</p>
@@ -159,10 +139,9 @@ const Dashboard: React.FC<{ isFullscreen?: boolean }> = ({ isFullscreen = false 
           </div>
         </div>
       </motion.div>
-      )}
 
       {/* ═══ SECTION 2: SURCHARGE TABLES ═══ */}
-      <div className={isFullscreen ? "grid grid-cols-1 xl:grid-cols-2 gap-4" : S.tablesGrid}>
+      <motion.div {...motionFadeUp} transition={{ duration: 0.5, delay: 0.15 }} className={S.tablesGrid}>
         {/* Container Surcharge Table */}
         <div className={S.tableCard}>
           <div className={S.tableHeaderRow}>
@@ -184,19 +163,18 @@ const Dashboard: React.FC<{ isFullscreen?: boolean }> = ({ isFullscreen = false 
               <tbody>
                 {sortedTiers.map((t, i) => {
                   const active = tierIndex === i + 1;
-                  const fsActive = isFullscreen && active;
                   return (
-                    <tr key={t.id} className={cn(S.rowBase, active ? S.rowActive : S.rowIdle, fsActive && "text-lg")}>
+                    <tr key={t.id} className={cn(S.rowBase, active ? S.rowActive : S.rowIdle)}>
                       <td className={S.tdCenter}>
                         {active ? <span className={S.sttActive}>{i + 1}</span> : <span className={S.sttIdle}>{i + 1}</span>}
                       </td>
-                      <td className={cn(S.cellRange(active), fsActive && "text-base font-black")}>
+                      <td className={S.cellRange(active)}>
                         {formatPrice(t.minPrice)} – {t.maxPrice >= 99999 ? 'Trở lên' : formatPrice(t.maxPrice)}
                       </td>
-                      <td className={cn(S.cellValue(active), fsActive && "text-xl font-black")}>{formatPrice(t.surcharge20F)}</td>
-                      <td className={cn(S.cellValue(active), fsActive && "text-xl font-black")}>{formatPrice(t.surcharge40F)}</td>
-                      <td className={cn(S.cellValue(active), fsActive && "text-xl font-black")}>{formatPrice(t.surcharge20E)}</td>
-                      <td className={cn(S.cellValue(active), fsActive && "text-xl font-black")}>{formatPrice(t.surcharge40E)}</td>
+                      <td className={S.cellValue(active)}>{formatPrice(t.surcharge20F)}</td>
+                      <td className={S.cellValue(active)}>{formatPrice(t.surcharge40F)}</td>
+                      <td className={S.cellValue(active)}>{formatPrice(t.surcharge20E)}</td>
+                      <td className={S.cellValue(active)}>{formatPrice(t.surcharge40E)}</td>
                     </tr>
                   );
                 })}
@@ -223,16 +201,15 @@ const Dashboard: React.FC<{ isFullscreen?: boolean }> = ({ isFullscreen = false 
               <tbody>
                 {[...bulkTiers].sort((a, b) => a.minPrice - b.minPrice).map((bt, i) => {
                   const active = currentPriceValue >= bt.minPrice && currentPriceValue <= bt.maxPrice;
-                  const fsActive = isFullscreen && active;
                   return (
-                    <tr key={bt.id} className={cn(S.rowBase, active ? S.rowActive : S.rowIdle, fsActive && "text-lg")}>
+                    <tr key={bt.id} className={cn(S.rowBase, active ? S.rowActive : S.rowIdle)}>
                       <td className={S.tdCenter}>
                         {active ? <span className={S.sttActive}>{i + 1}</span> : <span className={S.sttIdle}>{i + 1}</span>}
                       </td>
-                      <td className={cn(S.cellRange(active), fsActive && "text-base font-black")}>
+                      <td className={S.cellRange(active)}>
                         {formatPrice(bt.minPrice)} – {bt.maxPrice >= 99999 ? 'Trở lên' : formatPrice(bt.maxPrice)}
                       </td>
-                      <td className={cn(S.cellPercent(active), fsActive && "text-xl font-black")}>{Number(bt.percentSurcharge).toFixed(2)}%</td>
+                      <td className={S.cellPercent(active)}>{Number(bt.percentSurcharge).toFixed(2)}%</td>
                     </tr>
                   );
                 })}
@@ -240,10 +217,9 @@ const Dashboard: React.FC<{ isFullscreen?: boolean }> = ({ isFullscreen = false 
             </table>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* ═══ SECTION 3: FUEL PRICE CHART ═══ */}
-      {!isFullscreen && (
       <motion.div {...motionFadeUp} transition={{ duration: 0.5, delay: 0.3 }} className={S.chartCard}>
         <div className={S.chartHeader}>
           <div className={S.chartHeaderLeft}>
@@ -332,7 +308,6 @@ const Dashboard: React.FC<{ isFullscreen?: boolean }> = ({ isFullscreen = false 
           )}
         </div>
       </motion.div>
-      )}
     </div>
   );
 };

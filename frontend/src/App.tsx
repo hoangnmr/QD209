@@ -10,6 +10,7 @@ import History from "./components/History";
 import QuotationModule from "./components/QuotationModule";
 import ReconciliationModule from "./components/ReconciliationModule";
 import ServiceRegistrationModule from "./components/ServiceRegistrationModule";
+import FullscreenOverlay from "./components/FullscreenOverlay";
 import { useAppContext } from "./context/AppContext";
 import { motion, AnimatePresence } from "motion/react";
 import { API_BASE } from "./lib/apiBase";
@@ -29,22 +30,6 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const toggleFullscreen = useCallback(() => {
-    if (!isFullscreen) {
-      document.documentElement.requestFullscreen?.();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen?.();
-      setIsFullscreen(false);
-    }
-  }, [isFullscreen]);
-
-  useEffect(() => {
-    const onFsChange = () => { if (!document.fullscreenElement) setIsFullscreen(false); };
-    document.addEventListener('fullscreenchange', onFsChange);
-    return () => document.removeEventListener('fullscreenchange', onFsChange);
-  }, []);
-
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 1024;
@@ -53,6 +38,23 @@ export default function App() {
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // ─── Fullscreen logic ──────────────────────────────────────────────────
+  const toggleFullscreen = useCallback(() => {
+    if (!isFullscreen) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+      setIsFullscreen(false);
+    }
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    const onFsChange = () => { if (!document.fullscreenElement) setIsFullscreen(false); };
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
   }, []);
 
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -124,7 +126,7 @@ export default function App() {
     }
 
     switch (activeTab) {
-      case "dashboard":    return <Dashboard isFullscreen={isFullscreen} />;
+      case "dashboard":    return <Dashboard />;
       case "calculator":   return <SurchargeCalculator onAddToQuotation={handleAddToQuotation} />;
       case "quotation":    return <QuotationModule />;
       case "customers":    return isAdminMode && userRole !== 'guest' ? <CustomerList onCustomerToQuote={handleCustomerToQuote} /> : <Dashboard />;
@@ -137,34 +139,27 @@ export default function App() {
     }
   };
 
+  // ─── Fullscreen overlay ────────────────────────────────────────────────
+  if (isFullscreen) {
+    return <FullscreenOverlay onExit={toggleFullscreen} />;
+  }
+
   return (
     <div className={S.root}>
-      {!isFullscreen && (
-        <Sidebar
-          activeTab={activeTab}
-          setActiveTab={(tab) => { setActiveTab(tab); if (isMobile) setIsMobileMenuOpen(false); }}
-          collapsed={sidebarCollapsed}
-          setCollapsed={setSidebarCollapsed}
-          user={isAdminMode ? { displayName: userDisplayName || 'User', email: `${userRole}@local`, role: userRole } : null}
-          onLogout={handleLogout}
-          onLoginClick={() => setShowLoginModal(true)}
-          isMobile={isMobile}
-          isOpen={isMobileMenuOpen}
-          onClose={() => setIsMobileMenuOpen(false)}
-        />
-      )}
+      <Sidebar
+        activeTab={activeTab}
+        setActiveTab={(tab) => { setActiveTab(tab); if (isMobile) setIsMobileMenuOpen(false); }}
+        collapsed={sidebarCollapsed}
+        setCollapsed={setSidebarCollapsed}
+        user={isAdminMode ? { displayName: userDisplayName || 'User', email: `${userRole}@local`, role: userRole } : null}
+        onLogout={handleLogout}
+        onLoginClick={() => setShowLoginModal(true)}
+        isMobile={isMobile}
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+      />
 
       <div className={S.mainColumn}>
-        {/* Fullscreen toggle (PC only) */}
-        {!isMobile && activeTab === 'dashboard' && (
-          <button
-            onClick={toggleFullscreen}
-            title={isFullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình'}
-            className="fixed top-3 right-3 z-50 p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-white shadow-lg backdrop-blur transition-all hover:scale-105"
-          >
-            {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-          </button>
-        )}
         {isMobile && (
           <header className={S.mobileHeader}>
             <div className={S.mobileHeaderLeft}>
@@ -189,6 +184,17 @@ export default function App() {
 
         <main className={S.mainContent}>{renderContent()}</main>
       </div>
+
+      {/* Fullscreen button - PC only */}
+      {!isMobile && (
+        <button
+          onClick={toggleFullscreen}
+          title="Toàn màn hình"
+          className="fixed top-3 right-3 z-[60] bg-slate-800/80 hover:bg-indigo-600 text-white p-2.5 rounded-lg shadow-lg backdrop-blur transition-all hover:scale-110"
+        >
+          <Maximize className="w-5 h-5" />
+        </button>
+      )}
 
       {/* Login Modal */}
       <AnimatePresence>
