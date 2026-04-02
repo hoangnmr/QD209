@@ -47,13 +47,14 @@ const Sidebar: React.FC<SidebarProps> = ({
   );
 
   return (
+    <>
+    {isMobile && isOpen && <div className={S.backdrop} onClick={onClose} />}
     <div className={cn(
       S.sidebarBase,
       isMobile
         ? (isOpen ? S.sidebarMobileOpen : S.sidebarMobileClosed)
         : (collapsed ? S.sidebarCollapsed : S.sidebarExpanded)
     )}>
-      {isMobile && isOpen && <div className={S.backdrop} onClick={onClose} />}
 
       {/* Logo */}
       <div className={S.logoSection}>
@@ -125,6 +126,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
     </div>
+    </>
   );
 };
 
