@@ -150,7 +150,7 @@ export default function App() {
             </div>
             {isAdminMode
               ? <div className={S.adminBadge}>Admin</div>
-              : <button onClick={() => setShowLoginModal(true)} className={S.adminBadge} style={{cursor:'pointer',background:'#4f46e5'}}>Dang nhap</button>
+              : <button onClick={() => setShowLoginModal(true)} className={S.adminBadge} style={{cursor:'pointer',background:'#ea580c',color:'#fff',fontWeight:600,border:'none',borderRadius:6,padding:'4px 12px',fontSize:13}}>Dang nhap</button>
             }
           </header>
         )}

@@ -7,7 +7,7 @@ export const sidebarExpanded = "w-64";
 export const sidebarCollapsed = "w-20";
 
 // ─── Backdrop ───────────────────────────────────────────────────────────────
-export const backdrop = "fixed inset-0 bg-slate-900/60 backdrop-blur-sm -z-10";
+export const backdrop = "fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40";
 
 // ─── Logo Section ───────────────────────────────────────────────────────────
 export const logoSection = "p-4 flex items-center justify-between";
