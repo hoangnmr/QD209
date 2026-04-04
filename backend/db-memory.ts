@@ -8,15 +8,13 @@ import bcrypt from "bcryptjs";
 let store: Record<string, any[]> = {
   fuel_prices: [
     // Lịch sử biến động giả định từ tháng 3 đến đầu tháng 4/2026 để test
-    { id: 1, date: '2026-03-12', effectiveAt: '2026-03-12T08:00:00+07:00', fuelType: 'Dầu DO 0,05S-II', priceV1: 34200, isPublished: false },
-    { id: 2, date: '2026-03-19', effectiveAt: '2026-03-19T08:00:00+07:00', fuelType: 'Dầu DO 0,05S-II', priceV1: 35000, isPublished: false },
-    { id: 3, date: '2026-03-24', effectiveAt: '2026-03-24T08:00:00+07:00', fuelType: 'Dầu DO 0,05S-II', priceV1: 36100, isPublished: false },
-    { id: 4, date: '2026-03-26', effectiveAt: '2026-03-26T08:00:00+07:00', fuelType: 'Dầu DO 0,05S-II', priceV1: 35440, isPublished: false },
-    { id: 5, date: '2026-04-01', effectiveAt: '2026-04-01T08:00:00+07:00', fuelType: 'Dầu DO 0,05S-II', priceV1: 35440, isPublished: false },
-    // Dữ liệu điều chỉnh 2/4
-    { id: 6, date: '2026-04-02', effectiveAt: '2026-04-02T23:30:00+07:00', fuelType: 'Dầu DO 0,05S-II', priceV1: 38250, isPublished: false },
+    { id: 1, date: '2026-03-26', effectiveAt: '2026-03-26T08:00:00+07:00', fuelType: 'Dầu DO 0,05S-II', priceV1: 35440, isPublished: false },
+    { id: 2, date: '2026-04-01', effectiveAt: '2026-04-01T08:00:00+07:00', fuelType: 'Dầu DO 0,05S-II', priceV1: 35440, isPublished: false },
+    { id: 3, date: '2026-04-02', effectiveAt: '2026-04-02T08:00:00+07:00', fuelType: 'Dầu DO 0,05S-II', priceV1: 35440, isPublished: false },
+    // Dữ liệu điều chỉnh 3/4
+    { id: 4, date: '2026-04-03', effectiveAt: '2026-04-03T08:00:00+07:00', fuelType: 'Dầu DO 0,05S-II', priceV1: 40820, isPublished: false },
     // Dữ liệu mới nhất hiện hành (44.780đ)
-    { id: 7, date: '2026-04-04', effectiveAt: '2026-04-03T23:45:00+07:00', fuelType: 'Dầu DO 0,05S-II', priceV1: 44780, isPublished: false },
+    { id: 5, date: '2026-04-04', effectiveAt: '2026-04-04T08:00:00+07:00', fuelType: 'Dầu DO 0,05S-II', priceV1: 44780, isPublished: false },
   ],
   tiers: [
     { id: 1, minPrice: 0,     maxPrice: 23000, surcharge20F: 0,      surcharge40F: 0,      surcharge20E: 0,      surcharge40E: 0      },
