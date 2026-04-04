@@ -187,13 +187,7 @@ export default function QuotationModule() {
     } catch { showToast('Lỗi khi lưu! Vui lòng thử lại.', 'error'); }
   };
 
-  const handleExcel = () => {
-    const data = processed.rows.filter(r => r.name).map((r, i) => ({ STT: i + 1, 'Phương án': r.name, DVT: r.unit, 'Số lượng': r.quantity, 'Đơn giá': r.price, 'Thành tiền': r.lineTotal }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'BaoGia');
-    XLSX.writeFile(wb, `BaoGia_${customerName || 'khach_hang'}.xlsx`);
-  };
+
 
   const handleDeleteQuote = async (id: string) => {
     if (!confirm(t.confirmDeleteQuote)) return;
@@ -252,7 +246,6 @@ export default function QuotationModule() {
             t={t} onNew={handleNew} onSave={handleSave}
             onGeneratePreview={generatePreview} isRendering={isRendering}
             onExportPDF={() => exportPDF(`Bao_gia_${customerName || 'khach_hang'}`)}
-            onExportExcel={handleExcel}
             previewImg={previewImg}
             canEdit={canEdit}
           />

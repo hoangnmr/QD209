@@ -36,9 +36,6 @@ export default function QuotationActionsPanel({
           {isRendering ? 'Xử lý...' : t.btnUpdate}
         </button>
         <button onClick={onExportPDF} disabled={!canEdit || isRendering} style={{...cBtn('#dc3545'), ...disabledStyle}}>{t.btnPdf}</button>
-        {onExportExcel && (
-          <button onClick={onExportExcel} disabled={!canEdit} style={{ ...cBtn('#17a2b8'), gridColumn: '1 / -1', ...disabledStyle }}>📊 Xuất Excel</button>
-        )}
       </div>
 
       {previewImg ? (

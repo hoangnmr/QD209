@@ -486,7 +486,7 @@ export default function ReconciliationModule() {
           ĐỐI SOÁT PHỤ THU
         </h1>
         <p className="text-slate-500 font-medium">
-          So sánh phụ thu theo ngày làm lệnh và ngày thực hiện. Hỗ trợ đối soát thủ công bằng QR và đối soát hàng loạt từ Excel.
+          So sánh phụ thu theo ngày làm lệnh và ngày thực hiện.
         </p>
       </div>
 
@@ -670,7 +670,7 @@ export default function ReconciliationModule() {
               <div>
                 <h2 className="text-lg font-bold text-slate-800">Đối soát</h2>
                 <p className="text-sm text-slate-500 mt-1">
-                  Import file như <strong>Truy vấn thông tin lệnh.xlsx</strong>, hệ thống sẽ tách các cột chính, tính giá dầu và phụ thu theo ngày lệnh và ngày thực hiện rồi xuất ra file mới.
+                  Import file <strong>Tồn lệnh chưa thực hiện xuất từ Vtos</strong>, hệ thống sẽ tách các cột chính, tính giá dầu và phụ thu theo ngày lệnh và ngày thực hiện rồi xuất ra file mới.
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
@@ -713,7 +713,7 @@ export default function ReconciliationModule() {
               </div>
               <div className="bg-slate-50 border border-slate-200 rounded-3xl p-5">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Quy tắc loại cont</p>
-                <p className="text-sm text-slate-600 mt-2">`KC ISO` bắt đầu bằng 2 được tính là 20, bắt đầu bằng 4 được tính là 40; ghép với cột `F/E` để ra 20F, 40F, 20E, 40E.</p>
+                <p className="text-sm text-slate-600 mt-2">20F, 40F, 20E, 40E.</p>
               </div>
               <div className="bg-slate-50 border border-slate-200 rounded-3xl p-5">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">File đầu ra</p>
