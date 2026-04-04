@@ -35,6 +35,13 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- Migration: add effective_at for surcharge offset logic (08:00 AM rule)
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='fuel_prices' AND column_name='effective_at') THEN
+    ALTER TABLE fuel_prices ADD COLUMN effective_at TEXT;
+  END IF;
+END $$;
+
 -- Deduplicate legacy rows (keep lowest id per date)
 DELETE FROM fuel_prices a
   USING fuel_prices b

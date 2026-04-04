@@ -1,6 +1,7 @@
 export interface FuelPrice {
   id: string;
   date: string;
+  effectiveAt?: string;
   fuelType: string;
   priceV1: number;
   isPublished?: boolean;

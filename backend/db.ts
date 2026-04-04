@@ -49,16 +49,16 @@ export async function withTransaction<T>(fn: (client: pg.PoolClient) => Promise<
 
 // fuel_prices
 export async function getAllPrices() {
-  return query("SELECT id, date, fuel_type AS \"fuelType\", price_v1 AS \"priceV1\", is_published AS \"isPublished\" FROM fuel_prices ORDER BY date DESC");
+  return query("SELECT id, date, effective_at AS \"effectiveAt\", fuel_type AS \"fuelType\", price_v1 AS \"priceV1\", is_published AS \"isPublished\" FROM fuel_prices ORDER BY date DESC");
 }
 export async function replacePrices(rows: any[], client?: pg.PoolClient) {
   const q = client ?? pool;
   await q.query("DELETE FROM fuel_prices");
   for (const r of rows) {
     await q.query(
-      `INSERT INTO fuel_prices (date, fuel_type, price_v1) VALUES ($1, $2, $3)
-       ON CONFLICT (date) DO UPDATE SET fuel_type = EXCLUDED.fuel_type, price_v1 = EXCLUDED.price_v1`,
-      [r.date, r.fuelType || "Dầu DO 0,05S-II", r.priceV1]
+      `INSERT INTO fuel_prices (date, fuel_type, price_v1, effective_at) VALUES ($1, $2, $3, $4)
+       ON CONFLICT (date) DO UPDATE SET fuel_type = EXCLUDED.fuel_type, price_v1 = EXCLUDED.price_v1, effective_at = EXCLUDED.effective_at`,
+      [r.date, r.fuelType || "Dầu DO 0,05S-II", r.priceV1, r.effectiveAt || null]
     );
   }
 }

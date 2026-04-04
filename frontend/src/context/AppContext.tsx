@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { FuelPrice, Tier, BulkTier, Customer, Product, QuotationHistoryItem, ReconciliationLog } from '../types';
+import { getSurchargeEffectiveAt, getVietnamTodayIsoDate, normalizeDateInput } from '../lib/fuelPrices';
 import { logiStorage } from '../lib/storage';
 import { API_BASE } from '../lib/apiBase';
 
@@ -68,6 +69,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [pendingSurcharge, setPendingSurcharge] = useState<{ amount: number; quantity: number; cargoType: string } | null>(null);
   const [pendingCustomer, setPendingCustomer] = useState<Customer | null>(null);
 
+  const upsertFuelPrice = (
+    currentPrices: FuelPrice[],
+    nextEntry: FuelPrice,
+    scanDateToCleanup?: string
+  ) => {
+    const normalized = currentPrices.filter(price => !(
+      scanDateToCleanup &&
+      scanDateToCleanup !== nextEntry.date &&
+      price.date === scanDateToCleanup &&
+      price.fuelType === nextEntry.fuelType &&
+      price.priceV1 === nextEntry.priceV1
+    ));
+    const existingIndex = normalized.findIndex(
+      price => price.date === nextEntry.date && price.fuelType === nextEntry.fuelType
+    );
+    if (existingIndex >= 0) {
+      const updated = [...normalized];
+      updated[existingIndex] = { ...updated[existingIndex], ...nextEntry };
+      return updated;
+    }
+    return [...normalized, nextEntry];
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -121,8 +145,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setUserDisplayName('');
       }
 
-      // Auto-sync removed — daily 7AM cron on backend handles syncing.
-      // Manual sync available via Admin > "Đồng bộ từ Web" button.
+      // Auto-sync with offset 08:00 AM logic
+      const todayStr = getVietnamTodayIsoDate();
+      const hasTodayPrice = storedPrices.some(p => {
+        if (p.fuelType !== "Dầu DO 0,05S-II") return false;
+        const surchargeDate = normalizeDateInput(getSurchargeEffectiveAt(p) || p.date);
+        return surchargeDate === todayStr;
+      });
+
+      if (!hasTodayPrice) {
+        try {
+          const res = await fetch(`${API_BASE}/api/petrolimex-sync`);
+          const json = await res.json();
+          if (json.success && json.data && json.data.parsedFromWeb) {
+            const newPrice = Number(json.data.priceV1);
+            const sourceDate = normalizeDateInput(json.data.effectiveDate) || todayStr;
+            const surchargeDate = normalizeDateInput(
+              getSurchargeEffectiveAt({
+                id: 'auto-sync-preview',
+                date: sourceDate,
+                effectiveAt: json.data.effectiveAt,
+                fuelType: "Dầu DO 0,05S-II",
+                priceV1: newPrice
+              }) || sourceDate
+            ) || todayStr;
+            const autoPrice: FuelPrice = {
+              id: Date.now().toString(),
+              date: surchargeDate,
+              effectiveAt: json.data.effectiveAt || `${sourceDate}T00:00:00+07:00`,
+              fuelType: "Dầu DO 0,05S-II",
+              priceV1: newPrice
+            };
+            const updated = upsertFuelPrice(storedPrices, autoPrice, todayStr);
+            const existing = storedPrices.find(price => price.date === surchargeDate && price.fuelType === autoPrice.fuelType);
+            if (!existing || existing.priceV1 !== newPrice || updated.length !== storedPrices.length) {
+              setPrices(updated);
+              await logiStorage.setPrices(updated);
+              console.log(`[Auto-Sync] ✅ Đã đồng bộ giá áp dụng ${surchargeDate}: ${newPrice.toLocaleString()} đ`);
+            }
+          } else if (json.success && json.data) {
+            console.warn(`[Auto-Sync] ⚠️ Scraper trả về fallback (${json.data.priceV1.toLocaleString()} đ) — không tự thêm.`);
+          }
+        } catch (e) {
+          console.error("Auto Sync Failed", e);
+        }
+      }
 
     } catch (err) {
       setError("Lỗi tải dữ liệu. Vui lòng thử lại.");
