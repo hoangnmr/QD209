@@ -92,6 +92,23 @@ export const inlineEditCancelBtn =
 
 export const emptyRow = "px-4 py-6 text-center text-slate-400 font-medium";
 
+// ─── Expand / Tier badge ─────────────────────────────────────────────────────
+export const tdExpandIcon = "px-2 py-2.5 w-8 text-center";
+export const tdTierCenter = "px-4 py-2.5 text-center";
+export const tierBadge =
+  "inline-flex items-center px-2.5 py-0.5 rounded text-[11px] font-bold bg-indigo-50 text-indigo-600";
+
+// ─── Expanded Detail Row ──────────────────────────────────────────────────────
+export const expandedRow = "bg-slate-50/60";
+export const expandedCell = "px-4 py-3";
+export const expandedGrid = "grid grid-cols-2 gap-4 max-w-lg ml-10";
+export const expandedSection = "space-y-1.5";
+export const expandedSectionTitle = "text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1";
+export const expandedDetailRow = "flex items-center justify-between text-sm";
+export const expandedLabel = "text-slate-500 font-medium";
+export const expandedValueRose = "font-bold text-rose-600";
+export const expandedValueOrange = "font-bold text-orange-500";
+
 // ─── Tiers Tab ──────────────────────────────────────────────────────────────
 export const tierForm = "space-y-5";
 export const tierGrid2 = "grid grid-cols-1 md:grid-cols-2 gap-4";

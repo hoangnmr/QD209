@@ -24,9 +24,9 @@ app.use("/api/auth",  authRouter);
 app.use("/api",       crudRouter);
 app.use("/api",       syncRouter);
 
-// ─── Daily 7:00 AM Scheduler ─────────────────────────────────────────────────
+// ─── Daily 6:00 AM Scheduler ─────────────────────────────────────────────────
 function startDailyScheduler() {
-  const SYNC_HOUR = 7;
+  const SYNC_HOUR = 6;
   const SYNC_MINUTE = 0;
 
   function scheduleNext() {

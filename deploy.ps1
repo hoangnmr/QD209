@@ -80,5 +80,5 @@ if ($LASTEXITCODE -ne 0) { Write-Host "RESTART FAILED" -ForegroundColor Red; exi
 
 Write-Host "`n==========================================" -ForegroundColor Green
 Write-Host "  Deploy complete!" -ForegroundColor Green
-Write-Host "  https://tanthuan.io.vn/QD209/" -ForegroundColor Green
+Write-Host "  https://ttport.vn/QD209/" -ForegroundColor Green
 Write-Host "==========================================" -ForegroundColor Green

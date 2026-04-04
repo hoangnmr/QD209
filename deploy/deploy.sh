@@ -62,7 +62,7 @@ pm2 save
 echo ""
 echo "=========================================="
 echo "  Deployment complete!"
-echo "  App running at: https://tanthuan.io.vn/QD209/"
+echo "  App running at: https://ttport.vn/QD209/"
 echo "  PM2 status:"
 pm2 status ${PM2_APP_NAME}
 echo "=========================================="

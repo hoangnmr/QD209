@@ -17,7 +17,9 @@ import {
   Pin,
   PinOff,
   Check,
-  X
+  X,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 
 import * as XLSX from 'xlsx';
@@ -35,7 +37,11 @@ const AdminPanel: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Price Form
-  const [newDate, setNewDate] = useState(new Date().toISOString().split('T')[0]);
+  const localDateStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  };
+  const [newDate, setNewDate] = useState(localDateStr());
   const [newFuelType, setNewFuelType] = useState("Dầu DO 0,05S-II");
   const [newPriceV1, setNewPriceV1] = useState("");
   
@@ -59,6 +65,7 @@ const AdminPanel: React.FC = () => {
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   const [editPriceValue, setEditPriceValue] = useState("");
   
+  const [expandedPriceId, setExpandedPriceId] = useState<string | null>(null);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
   const [fallbackPrice, setFallbackPrice] = useState("");
@@ -173,7 +180,7 @@ const AdminPanel: React.FC = () => {
       if (json.success && json.data) {
         setNewPriceV1(json.data.priceV1.toString());
         // Keep date field as today — don't overwrite with Petrolimex effective date
-        setNewDate(new Date().toISOString().split('T')[0]);
+        setNewDate(localDateStr());
         const petrolDate = json.data.effectiveDate || json.data.date;
         if (json.data.parsedFromWeb) {
           setSyncMsg(<>✅ Cào giá thật từ Petrolimex: <b style={{color:'#22c55e'}}>{Number(json.data.priceV1).toLocaleString()} đ</b> (ngày cập nhật trên Petrolimex: <b style={{color:'#facc15'}}>{petrolDate}</b>) — Bấm &quot;+ Thêm&quot; để lưu.</>);
@@ -209,6 +216,15 @@ const AdminPanel: React.FC = () => {
       if (json.success) {
         setSyncMsg(json.message);
         setNewPriceV1("");
+
+        // Auto-publish if the added date is today
+        if (newDate === localDateStr() && json.id) {
+          await fetch(`${API_BASE}/api/prices/${json.id}/publish`, {
+            method: "PUT",
+            headers: authHeader(),
+          });
+        }
+
         await fetchData();
         setTimeout(() => setSyncMsg(""), 3000);
       } else {
@@ -229,6 +245,19 @@ const AdminPanel: React.FC = () => {
     if (type === '20E') return activeTier.surcharge20E;
     if (type === '40E') return activeTier.surcharge40E;
     return 0;
+  };
+
+  const getTierLabel = (price: number): string => {
+    const sorted = [...tiers].sort((a, b) => a.minPrice - b.minPrice);
+    const idx = sorted.findIndex(t => price >= t.minPrice && price <= t.maxPrice);
+    if (idx === -1) return '—';
+    return `Bậc ${idx + 1}`;
+  };
+
+  const getBulkTierPercent = (price: number): string => {
+    const tier = bulkTiers.find(t => price >= t.minPrice && price <= t.maxPrice);
+    if (!tier) return '—';
+    return `${tier.percentSurcharge}%`;
   };
 
   const handleDeletePrice = async (id: string) => {
@@ -461,7 +490,7 @@ const AdminPanel: React.FC = () => {
                 <h3 className={S.pricesSectionTitle}>Thêm giá mới</h3>
                 <div className={S.syncRow}>
                   {syncMsg && <span className={S.syncMsg}>{syncMsg}</span>}
-                  <button type="button" onClick={() => handleSync(true)} disabled={isSyncing} className={S.syncBtn}>
+                  <button type="button" onClick={() => handleSync()} disabled={isSyncing} className={S.syncBtn}>
                     <DownloadCloud className={`w-4 h-4 ${isSyncing ? 'animate-bounce' : ''}`} />
                     {isSyncing ? "Đang lấy..." : "🌐 Đồng bộ từ Web"}
                   </button>
@@ -504,13 +533,11 @@ const AdminPanel: React.FC = () => {
                    <table className={S.table}>
                      <thead className={S.thead}>
                        <tr>
+                         <th className={S.thSlate}></th>
                          <th className={S.thSlate}>Ngày Áp Dụng</th>
                          <th className={S.thIndigo}>Giá Vùng 1 (VNĐ)</th>
                          <th className={S.thIndigoCenter}>Biến động</th>
-                         <th className={S.thRose}>Phụ thu 20F</th>
-                         <th className={S.thRose}>Phụ thu 40F</th>
-                         <th className={S.thOrange}>Phụ thu 20E</th>
-                         <th className={S.thOrange}>Phụ thu 40E</th>
+                         <th className={S.thIndigoCenter}>Mức Phụ Thu</th>
                          <th className={S.thSlateCenter}>Thao tác</th>
                        </tr>
                      </thead>
@@ -520,17 +547,24 @@ const AdminPanel: React.FC = () => {
                          const isEditing = editingPriceId === p.id;
                          const hasAnyPublished = prices.some(x => x.isPublished);
                          const isPublished = p.isPublished;
-                         // If none is explicitly published, the newest (index 0) is the default
                          const isEffective = isPublished || (!hasAnyPublished && index === 0);
+                         const isExpanded = expandedPriceId === p.id;
                          return (
-                         <tr key={p.id} className={`${S.row} ${isEffective ? 'ring-1 ring-indigo-300 bg-indigo-50/40' : ''}`}>
+                         <React.Fragment key={p.id}>
+                         <tr
+                           className={`${S.row} ${isEffective ? 'ring-1 ring-indigo-300 bg-indigo-50/40' : ''} cursor-pointer`}
+                           onClick={() => setExpandedPriceId(isExpanded ? null : p.id)}
+                         >
+                           <td className={S.tdExpandIcon}>
+                             {isExpanded ? <ChevronDown className="w-4 h-4 text-indigo-500" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+                           </td>
                            <td className={S.tdDate}>
                              {new Date(p.date).toLocaleDateString('vi-VN')}
                              {isEffective && <span className={S.publishedBadge}>📌 Đang dùng</span>}
                            </td>
                            <td className={S.tdPrice}>
                              {isEditing ? (
-                               <div className="flex items-center gap-1 justify-end">
+                               <div className="flex items-center gap-1 justify-end" onClick={e => e.stopPropagation()}>
                                  <input
                                    type="number"
                                    value={editPriceValue}
@@ -558,11 +592,10 @@ const AdminPanel: React.FC = () => {
                               {delta < 0 && <span className={S.deltaDown}>- {Math.abs(delta).toLocaleString('vi-VN')} đ (Giảm)</span>}
                               {delta === 0 && <span className={S.deltaNone}>-</span>}
                            </td>
-                           <td className={S.tdRose}>{getSurchargeFromPrice(p.priceV1, '20F').toLocaleString('vi-VN')} đ</td>
-                           <td className={S.tdRose}>{getSurchargeFromPrice(p.priceV1, '40F').toLocaleString('vi-VN')} đ</td>
-                           <td className={S.tdOrange}>{getSurchargeFromPrice(p.priceV1, '20E').toLocaleString('vi-VN')} đ</td>
-                           <td className={S.tdOrange}>{getSurchargeFromPrice(p.priceV1, '40E').toLocaleString('vi-VN')} đ</td>
-                           <td className={S.tdActionCenter}>
+                           <td className={S.tdTierCenter}>
+                             <span className={S.tierBadge}>{getTierLabel(p.priceV1)}</span>
+                           </td>
+                           <td className={S.tdActionCenter} onClick={e => e.stopPropagation()}>
                              <div className="flex items-center justify-center gap-1">
                                <button onClick={() => handleStartEditPrice(p)} className={S.editIconBtn} title="Sửa giá">
                                  <Pencil className="w-4 h-4" />
@@ -580,9 +613,44 @@ const AdminPanel: React.FC = () => {
                              </div>
                            </td>
                          </tr>
+                         {isExpanded && (
+                           <tr className={S.expandedRow}>
+                             <td colSpan={6} className={S.expandedCell}>
+                               <div className={S.expandedGrid}>
+                                 <div className={S.expandedSection}>
+                                   <div className={S.expandedSectionTitle}>📦 Hàng Container</div>
+                                   <div className={S.expandedDetailRow}>
+                                     <span className={S.expandedLabel}>20 Feet Full:</span>
+                                     <span className={S.expandedValueRose}>{getSurchargeFromPrice(p.priceV1, '20F').toLocaleString('vi-VN')} đ</span>
+                                   </div>
+                                   <div className={S.expandedDetailRow}>
+                                     <span className={S.expandedLabel}>20 Feet Empty:</span>
+                                     <span className={S.expandedValueRose}>{getSurchargeFromPrice(p.priceV1, '20E').toLocaleString('vi-VN')} đ</span>
+                                   </div>
+                                   <div className={S.expandedDetailRow}>
+                                     <span className={S.expandedLabel}>40 Feet Full:</span>
+                                     <span className={S.expandedValueRose}>{getSurchargeFromPrice(p.priceV1, '40F').toLocaleString('vi-VN')} đ</span>
+                                   </div>
+                                   <div className={S.expandedDetailRow}>
+                                     <span className={S.expandedLabel}>40 Feet Empty:</span>
+                                     <span className={S.expandedValueRose}>{getSurchargeFromPrice(p.priceV1, '40E').toLocaleString('vi-VN')} đ</span>
+                                   </div>
+                                 </div>
+                                 <div className={S.expandedSection}>
+                                   <div className={S.expandedSectionTitle}>📦 Hàng Ngoài Container</div>
+                                   <div className={S.expandedDetailRow}>
+                                     <span className={S.expandedLabel}>Tỉ lệ phụ thu:</span>
+                                     <span className={S.expandedValueOrange}>{getBulkTierPercent(p.priceV1)}</span>
+                                   </div>
+                                 </div>
+                               </div>
+                             </td>
+                           </tr>
+                         )}
+                         </React.Fragment>
                        )})}
                        {prices.length === 0 && (
-                         <tr><td colSpan={8} className={S.emptyRow}>Chưa có dữ liệu thống kê.</td></tr>
+                         <tr><td colSpan={6} className={S.emptyRow}>Chưa có dữ liệu thống kê.</td></tr>
                        )}
                      </tbody>
                    </table>

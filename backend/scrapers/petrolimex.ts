@@ -218,6 +218,33 @@ export async function cronSync(): Promise<void> {
     } else {
       console.log(`[Cron] ℹ️ ${result.message}`);
     }
+
+    // Always ensure today has a price row
+    const today = todayStr();
+    const todayRow = await query(
+      `SELECT id FROM fuel_prices WHERE date = $1`, [today]
+    );
+
+    if (todayRow.length === 0) {
+      // No row for today — copy the most recent price
+      const latest = await query(
+        `SELECT fuel_type, price_v1 FROM fuel_prices ORDER BY date DESC LIMIT 1`
+      );
+      if (latest.length > 0) {
+        await execute(
+          `INSERT INTO fuel_prices (date, fuel_type, price_v1) VALUES ($1, $2, $3)
+           ON CONFLICT (date) DO NOTHING`,
+          [today, latest[0].fuel_type, latest[0].price_v1]
+        );
+        console.log(`[Cron] 📋 Sao chép giá ${latest[0].price_v1}đ cho ngày ${today} (giá không đổi)`);
+        await logAudit("CRON_COPY_PRICE", `Sao chép giá ${latest[0].price_v1}đ cho ngày ${today} (giá không đổi)`);
+      }
+    }
+
+    // Always publish today's price to homepage
+    await execute(`UPDATE fuel_prices SET is_published = FALSE`);
+    await execute(`UPDATE fuel_prices SET is_published = TRUE WHERE date = $1`, [today]);
+    console.log(`[Cron] 📌 Đã ghim giá ngày ${today} lên Trang Chủ`);
   } catch (e: any) {
     console.error(`[Cron] ❌ Lỗi đồng bộ: ${e.message}`);
     await logAudit("CRON_SYNC_ERROR", `Lỗi cào tự động: ${e.message}`);

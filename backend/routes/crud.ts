@@ -22,14 +22,16 @@ router.post("/prices/upsert", async (req, res) => {
     const result = await query(
       `INSERT INTO fuel_prices (date, fuel_type, price_v1) VALUES ($1, $2, $3)
        ON CONFLICT (date) DO UPDATE SET fuel_type = EXCLUDED.fuel_type, price_v1 = EXCLUDED.price_v1
-       RETURNING (xmax = 0) AS inserted`,
+       RETURNING id, (xmax = 0) AS inserted`,
       [date, fuelType || "Dầu DO 0,05S-II", Number(priceV1)],
     );
-    const wasInserted = result[0]?.inserted ?? true;
+    const row = result[0];
+    const wasInserted = row?.inserted ?? true;
     const action = wasInserted ? "Thêm" : "Cập nhật";
     await logAudit("ADMIN_PRICE", `${action} giá: ${Number(priceV1).toLocaleString()}đ ngày ${date}`);
     res.json({
       success: true,
+      id: row?.id,
       message: `✅ ${action} giá ${Number(priceV1).toLocaleString()}đ cho ngày ${date}.`,
     });
   } catch (e: any) {
