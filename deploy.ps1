@@ -9,7 +9,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 $SSH_KEY = "$env:USERPROFILE\.ssh\qd209_deploy"
-$SERVER = "-p 24700 root@103.72.98.102"
+$SSH_PORT = "24700"
+$SSH_USER = "root@103.72.98.102"
 
 function Write-Step($step, $msg) {
     Write-Host "`n[$step] $msg" -ForegroundColor Cyan
@@ -43,13 +44,13 @@ if (-not $status) {
 
 # --- 3. Pull code on server ---
 Write-Step "3/5" "Pulling latest code on server..."
-ssh -i $SSH_KEY $SERVER "cd /var/www/ttport/QD209 && git fetch origin main && git reset --hard origin/main"
+ssh -i $SSH_KEY -p $SSH_PORT $SSH_USER "cd /var/www/ttport/QD209 && git fetch origin main && git reset --hard origin/main"
 if ($LASTEXITCODE -ne 0) { Write-Host "PULL FAILED" -ForegroundColor Red; exit 1 }
 Write-Host "Pull OK" -ForegroundColor Green
 
 # --- 4. Upload built frontend ---
 Write-Step "4/5" "Uploading frontend build to server..."
-scp -i $SSH_KEY -P 24700 -r "frontend/dist" "root@103.72.98.102:/var/www/ttport/QD209/frontend/"
+scp -i $SSH_KEY -P $SSH_PORT -r "frontend/dist" "${SSH_USER}:/var/www/ttport/QD209/frontend/"
 if ($LASTEXITCODE -ne 0) { Write-Host "UPLOAD FAILED" -ForegroundColor Red; exit 1 }
 Write-Host "Upload OK" -ForegroundColor Green
 
@@ -75,7 +76,7 @@ pm2 save
 echo "--- PM2 Status ---"
 pm2 status qd209
 '@
-($remoteScript -replace "`r", "") | ssh -i $SSH_KEY $SERVER "bash -s"
+($remoteScript -replace "`r", "") | ssh -i $SSH_KEY -p $SSH_PORT $SSH_USER "bash -s"
 if ($LASTEXITCODE -ne 0) { Write-Host "RESTART FAILED" -ForegroundColor Red; exit 1 }
 
 Write-Host "`n==========================================" -ForegroundColor Green
