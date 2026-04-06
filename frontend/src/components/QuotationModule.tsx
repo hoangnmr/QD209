@@ -244,6 +244,7 @@ export default function QuotationModule() {
           taxCode={taxCode} onTaxCodeChange={canEdit ? setTaxCode : ()=>{}}
           address={address} onAddressChange={canEdit ? setAddress : ()=>{}}
           phone={phone} onPhoneChange={canEdit ? setPhone : ()=>{}}
+          notes={notes} onNotesChange={canEdit ? setNotes : ()=>{}}
           customers={customers} items={items} tariffList={tariffList} services={services}
           updateRow={updateRow} removeRow={removeRow} addRow={addRow}
           processed={processed}

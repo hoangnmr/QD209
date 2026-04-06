@@ -17,6 +17,7 @@ interface Props {
   taxCode: string; onTaxCodeChange: (v: string) => void;
   address: string; onAddressChange: (v: string) => void;
   phone: string; onPhoneChange: (v: string) => void;
+  notes: string; onNotesChange: (v: string) => void;
   customers: Customer[];
   items: RowItem[];
   tariffList: TariffItem[];
@@ -31,6 +32,7 @@ export default function QuotationFormSection({
   t, quoteNo, onQuoteNoChange, quoteDate, onQuoteDateChange,
   customerName, onCustomerChange, taxCode, onTaxCodeChange,
   address, onAddressChange, phone, onPhoneChange,
+  notes, onNotesChange,
   customers, items, tariffList, services,
   updateRow, removeRow, addRow, processed
 }: Props) {
@@ -79,6 +81,11 @@ export default function QuotationFormSection({
           <div style={cLabel}>{t.labelPhone}</div>
           <input style={cInput} value={phone} onChange={e => onPhoneChange(e.target.value)} placeholder={t.labelPhone} />
         </div>
+      </div>
+
+      <div style={{ marginBottom: 10 }}>
+        <div style={cLabel}>{t.labelNotes}</div>
+        <input style={cInput} value={notes} onChange={e => onNotesChange(e.target.value)} placeholder="Ghi chú..." />
       </div>
 
       {/* Items Table */}

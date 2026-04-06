@@ -12,7 +12,8 @@ import {
   ArrowUpDown,
   Filter,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Search
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useAppContext } from '../context/AppContext';
@@ -88,6 +89,7 @@ export default function ReconciliationModule() {
   const [validationSummary, setValidationSummary] = useState<ReconciliationValidationSummary | null>(null);
   const [dateFilter, setDateFilter] = useState<string>('all');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [containerSearch, setContainerSearch] = useState('');
 
   const qrFileInputRef = useRef<HTMLInputElement>(null);
   const excelFileInputRef = useRef<HTMLInputElement>(null);
@@ -440,9 +442,16 @@ export default function ReconciliationModule() {
   }, [processedOrders]);
 
   const filteredOrders = useMemo(() => {
-    if (dateFilter === 'all') return processedOrders;
-    return processedOrders.filter(row => row.bookingDate === dateFilter);
-  }, [processedOrders, dateFilter]);
+    let result = processedOrders;
+    if (dateFilter !== 'all') {
+      result = result.filter(row => row.bookingDate === dateFilter);
+    }
+    if (containerSearch.trim()) {
+      const q = containerSearch.trim().toUpperCase();
+      result = result.filter(row => row.containerNumber.toUpperCase().includes(q));
+    }
+    return result;
+  }, [processedOrders, dateFilter, containerSearch]);
 
   const sortedOrders = useMemo(() => {
     const copy = [...filteredOrders];
@@ -868,9 +877,20 @@ export default function ReconciliationModule() {
                       <><ChevronDown className="w-3 h-3" /> Giảm dần</>
                     )}
                   </button>
-                  {dateFilter !== 'all' && (
+                  <div className="w-px h-6 bg-slate-200 hidden sm:block" />
+                  <div className="flex items-center gap-2">
+                    <Search className="w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      value={containerSearch}
+                      onChange={e => { setContainerSearch(e.target.value); setCurrentPage(1); }}
+                      placeholder="Tìm số container..."
+                      className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 min-w-[180px] placeholder:font-medium placeholder:text-slate-400"
+                    />
+                  </div>
+                  {(dateFilter !== 'all' || containerSearch.trim()) && (
                     <button
-                      onClick={() => { setDateFilter('all'); setCurrentPage(1); }}
+                      onClick={() => { setDateFilter('all'); setContainerSearch(''); setCurrentPage(1); }}
                       className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition"
                     >
                       ✕ Bỏ lọc
@@ -897,6 +917,7 @@ export default function ReconciliationModule() {
                         <th className="px-4 py-3 border-b border-slate-200 text-right">Phụ thu ban đầu</th>
                         <th className="px-4 py-3 border-b border-slate-200 text-right">Phụ thu thực hiện</th>
                         <th className="px-4 py-3 border-b border-slate-200 text-right">Chênh lệch</th>
+                        <th className="px-4 py-3 border-b border-slate-200 text-right">Phụ thu có VAT</th>
                         <th className="px-4 py-3 border-b border-slate-200 text-center">Điều chỉnh</th>
                       </tr>
                     </thead>
@@ -909,7 +930,7 @@ export default function ReconciliationModule() {
                           <React.Fragment key={`${row.orderNo}-${row.containerNumber}-${index}`}>
                             {isNewDateGroup && row.bookingDate && (
                               <tr className="bg-indigo-50/70">
-                                <td colSpan={11} className="px-4 py-2 border-b border-indigo-100">
+                                <td colSpan={12} className="px-4 py-2 border-b border-indigo-100">
                                   <div className="flex items-center gap-3">
                                     <span className="text-xs font-black text-indigo-700 uppercase tracking-widest">
                                       📅 Ngày lệnh: {displayDate(row.bookingDate)}
@@ -947,6 +968,9 @@ export default function ReconciliationModule() {
                                 }>
                                   {row.delta === null ? '-' : `${row.delta > 0 ? '+' : ''}${row.delta.toLocaleString('vi-VN')}`}
                                 </span>
+                              </td>
+                              <td className="px-4 py-3 border-b border-slate-100 text-xs text-right font-black text-indigo-700">
+                                {row.delta === null ? '-' : Math.round(row.delta * 1.08).toLocaleString('vi-VN')}
                               </td>
                               <td className="px-4 py-3 border-b border-slate-100 text-center">
                                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-black ${statusClasses[row.status]}`}>

@@ -446,9 +446,10 @@ export default function QuotationApp({ pendingSurcharge, onSurchargeProcessed }:
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t.phone}</label>
                   <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" />
                 </div>
-                <div className="space-y-1">
+                <div />
+                <div className="md:col-span-2 space-y-1">
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t.note}</label>
-                  <input type="text" value={note} onChange={(e) => setNote(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all" />
+                  <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all resize-none" placeholder="Nhập ghi chú cho báo giá..." />
                 </div>
               </div>
             </section>

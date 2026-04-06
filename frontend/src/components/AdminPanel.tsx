@@ -75,7 +75,7 @@ const AdminPanel: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // User management state
-  interface UserRow { id: number; username: string; display_name: string; role: string; created_at: string; }
+  interface UserRow { id: number; username: string; displayName: string; role: string; createdAt: string; }
   const [userList, setUserList] = useState<UserRow[]>([]);
   const [userFormMode, setUserFormMode] = useState<'add' | 'edit'>('add');
   const [editUserId, setEditUserId] = useState<number | null>(null);
@@ -121,7 +121,7 @@ const AdminPanel: React.FC = () => {
   };
 
   const handleEditUser = (u: UserRow) => {
-    setUserFormMode('edit'); setEditUserId(u.id); setUfUsername(u.username); setUfDisplayName(u.display_name); setUfPassword(''); setUfRole(u.role);
+    setUserFormMode('edit'); setEditUserId(u.id); setUfUsername(u.username); setUfDisplayName(u.displayName); setUfPassword(''); setUfRole(u.role);
   };
 
   const handleDeleteUser = async (u: UserRow) => {
@@ -824,7 +824,7 @@ const AdminPanel: React.FC = () => {
                     {userList.map((u) => (
                       <tr key={u.id} className={S.auditRow}>
                         <td className={S.auditTdAction}>{u.username}</td>
-                        <td className={S.auditTdDetail}>{u.display_name}</td>
+                        <td className={S.auditTdDetail}>{u.displayName}</td>
                         <td className={S.auditTdAction}>
                           <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${
                             u.role === 'admin' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' :
@@ -834,7 +834,7 @@ const AdminPanel: React.FC = () => {
                             {u.role === 'admin' ? 'Admin' : u.role === 'thuongvu' ? 'Thương vụ' : 'Khách'}
                           </span>
                         </td>
-                        <td className={S.auditTdTime}>{new Date(u.created_at).toLocaleDateString('vi-VN')}</td>
+                        <td className={S.auditTdTime}>{u.createdAt && !isNaN(new Date(u.createdAt).getTime()) ? new Date(u.createdAt).toLocaleDateString('vi-VN') : '—'}</td>
                         <td className="px-4 py-2">
                           <div className="flex gap-2">
                             <button onClick={() => handleEditUser(u)} className="p-1 text-indigo-500 hover:text-indigo-700" title="Sửa"><Pencil className="w-4 h-4" /></button>

@@ -229,19 +229,19 @@ export async function findUserByUsername(username: string) {
   // Pre-seed admin user with password "admin@@@@"
   if (store.users.length === 0) {
     const hash = bcrypt.hashSync("admin@@@@", 10);
-    store.users.push({ id: 1, username: "admin", password_hash: hash, display_name: "Admin", role: "admin" });
+    store.users.push({ id: 1, username: "admin", password_hash: hash, display_name: "Admin", role: "admin", created_at: new Date().toISOString() });
   }
   return store.users.find(u => u.username === username) || null;
 }
 
 export async function getAllUsers() {
   if (store.users.length === 0) await findUserByUsername("admin");
-  return store.users.map(u => ({ id: u.id, username: u.username, displayName: u.display_name, role: u.role, createdAt: "" }));
+  return store.users.map(u => ({ id: u.id, username: u.username, displayName: u.display_name, role: u.role, createdAt: u.created_at || new Date().toISOString() }));
 }
 
 export async function createUser(username: string, passwordHash: string, displayName: string, role: string) {
   const id = nextId();
-  store.users.push({ id, username, password_hash: passwordHash, display_name: displayName, role });
+  store.users.push({ id, username, password_hash: passwordHash, display_name: displayName, role, created_at: new Date().toISOString() });
   return { id };
 }
 

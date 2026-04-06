@@ -153,7 +153,11 @@ export const inferContainerType = (
   const isoText = String(isoCode ?? '').trim().toUpperCase();
   const fullEmpty = String(fullEmptyValue ?? '').trim().toUpperCase();
 
-  const size = isoText.startsWith('2') ? '20' : isoText.startsWith('4') ? '40' : undefined;
+  // L5 size types (e.g. L5G1) are treated as 40' containers
+  const size = isoText.startsWith('2') ? '20'
+    : isoText.startsWith('4') ? '40'
+    : isoText.startsWith('L5') ? '40'
+    : undefined;
   const mode = fullEmpty.startsWith('F') ? 'F' : fullEmpty.startsWith('E') ? 'E' : undefined;
 
   if (!size || !mode) return undefined;
@@ -295,11 +299,11 @@ export const validateImportedOrders = (
     if (!row.containerType) {
       issues.push({
         code: 'unknown_container_type',
-        severity: 'error',
+        severity: 'warning',
         rowIndex,
         orderNo: row.orderNo,
         containerNumber: row.containerNumber,
-        message: `Không suy ra được loại cont từ KC ISO "${row.isoCode}" và F/E "${row.fullEmpty}".`
+        message: `Không suy ra được loại cont từ KC ISO "${row.isoCode}" và F/E "${row.fullEmpty}". Cần kiểm tra thủ công.`
       });
     }
 
@@ -586,15 +590,24 @@ export const exportProcessedRowsToExcel = async (
     { header: 'Phụ thu ngày lệnh', key: 'surchargeAtBooking', width: 18 },
     { header: 'Phụ thu ngày thực hiện', key: 'surchargeAtExecution', width: 20 },
     { header: 'Chênh lệch phụ thu', key: 'delta', width: 18 },
+    { header: 'Phụ thu có VAT', key: 'deltaVat', width: 18 },
     { header: 'Điều chỉnh', key: 'adjustmentLabel', width: 16 }
   ];
 
+  const deltaColIndex = worksheet.columns.findIndex(c => c.key === 'delta') + 1;
+  const vatColIndex = worksheet.columns.findIndex(c => c.key === 'deltaVat') + 1;
+
   rows.forEach((row, index) => {
-    worksheet.addRow({
+    const excelRow = worksheet.addRow({
       stt: index + 1,
       ...row,
-      containerType: row.containerType ?? 'Không rõ'
+      containerType: row.containerType ?? 'Không rõ',
+      deltaVat: null
     });
+    // Set VAT formula: =<delta_cell>*1.08
+    const deltaCol = String.fromCharCode(64 + deltaColIndex);
+    const rowNum = excelRow.number;
+    excelRow.getCell('deltaVat').value = { formula: `${deltaCol}${rowNum}*1.08` } as any;
   });
 
   worksheet.views = [{ state: 'frozen', ySplit: 1 }];
@@ -621,7 +634,7 @@ export const exportProcessedRowsToExcel = async (
     };
   });
 
-  const currencyColumns = ['fuelPriceAtBooking', 'fuelPriceAtExecution', 'surchargeAtBooking', 'surchargeAtExecution', 'delta'] as const;
+  const currencyColumns = ['fuelPriceAtBooking', 'fuelPriceAtExecution', 'surchargeAtBooking', 'surchargeAtExecution', 'delta', 'deltaVat'] as const;
   const statusColors: Record<ReconciliationStatus, { fill: string; font: string }> = {
     increase: { fill: 'FEE2E2', font: 'BE123C' },
     decrease: { fill: 'DCFCE7', font: '15803D' },
@@ -695,6 +708,39 @@ export const exportProcessedRowsToExcel = async (
         value: issue.message
       });
     });
+  }
+
+  // === Sheet for unknown container type rows ===
+  const unknownTypeRows = rows.filter(r => !r.containerType);
+  if (unknownTypeRows.length > 0) {
+    const unknownSheet = workbook.addWorksheet('Kiem tra loai cont');
+    unknownSheet.columns = [
+      { header: 'STT', key: 'stt', width: 8 },
+      { header: 'Số lệnh', key: 'orderNo', width: 16 },
+      { header: 'Số PIN', key: 'pin', width: 22 },
+      { header: 'Ngày lệnh', key: 'bookingDateTimeDisplay', width: 22 },
+      { header: 'Số container', key: 'containerNumber', width: 18 },
+      { header: 'KC ISO', key: 'isoCode', width: 10 },
+      { header: 'F/E', key: 'fullEmpty', width: 8 },
+      { header: 'Ghi chú', key: 'note', width: 24 },
+      { header: 'Lý do', key: 'reason', width: 40 }
+    ];
+    unknownTypeRows.forEach((row, idx) => {
+      unknownSheet.addRow({
+        stt: idx + 1,
+        orderNo: row.orderNo,
+        pin: row.pin,
+        bookingDateTimeDisplay: row.bookingDateTimeDisplay,
+        containerNumber: row.containerNumber,
+        isoCode: row.isoCode,
+        fullEmpty: row.fullEmpty,
+        note: row.note,
+        reason: `Không suy ra được loại cont từ KC ISO "${row.isoCode}" và F/E "${row.fullEmpty}"`
+      });
+    });
+    unknownSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    unknownSheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'B45309' } };
+    unknownSheet.getRow(1).alignment = { horizontal: 'center', vertical: 'middle' };
   }
 
   const filename = buildExportFilename(sourceFilename, executionDate);
