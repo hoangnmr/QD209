@@ -19,7 +19,6 @@ router.post("/prices/upsert", async (req, res) => {
   }
 
   try {
-    // Try native SQL first (PostgreSQL mode)
     const result = await query(
       `INSERT INTO fuel_prices (date, fuel_type, price_v1) VALUES ($1, $2, $3)
        ON CONFLICT (date) DO UPDATE SET fuel_type = EXCLUDED.fuel_type, price_v1 = EXCLUDED.price_v1
@@ -27,44 +26,9 @@ router.post("/prices/upsert", async (req, res) => {
       [date, fuelType || "Dầu DO 0,05S-II", Number(priceV1)],
     );
 
-    let rowId: number | string | undefined;
-    let wasInserted = true;
-
-    if (result.length > 0) {
-      // PostgreSQL returned a row — use it
-      const row = result[0] as any;
-      rowId = row.id;
-      wasInserted = row.inserted ?? true;
-    } else {
-      // In-memory mode: query() returned [] → use high-level getter/setter
-      const getter = TABLE_GETTERS["prices"];
-      const setter = TABLE_SETTERS["prices"];
-      if (getter && setter) {
-        const allPrices: any[] = await getter();
-        const existingIdx = allPrices.findIndex(
-          (p: any) => p.date === date && p.fuelType === (fuelType || "Dầu DO 0,05S-II")
-        );
-        if (existingIdx >= 0) {
-          // Update existing
-          wasInserted = false;
-          rowId = allPrices[existingIdx].id;
-          allPrices[existingIdx] = { ...allPrices[existingIdx], priceV1: Number(priceV1) };
-        } else {
-          // Insert new
-          wasInserted = true;
-          rowId = Date.now();
-          allPrices.push({
-            id: rowId,
-            date,
-            effectiveAt: `${date}T08:00:00+07:00`,
-            fuelType: fuelType || "Dầu DO 0,05S-II",
-            priceV1: Number(priceV1),
-            isPublished: false,
-          });
-        }
-        await setter(allPrices);
-      }
-    }
+    const row = result[0] as any;
+    const rowId = row.id;
+    const wasInserted = row.inserted ?? true;
 
     const action = wasInserted ? "Thêm" : "Cập nhật";
     await logAudit("ADMIN_PRICE", `${action} giá: ${Number(priceV1).toLocaleString()}đ ngày ${date}`);

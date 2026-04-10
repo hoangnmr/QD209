@@ -1,16 +1,24 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 // 🔀 CÔNG TẮC CHẾ ĐỘ DATABASE
-// ── Muốn dùng PostgreSQL → import từ "./db-postgres.js"  ──
-// ── Muốn test local       → import từ "./db-memory.js"   ──
+// ── GIÁ DẦU (fuel_prices) + raw SQL: LUÔN LUÔN dùng PostgreSQL ──
+// ── Các bảng khác: có thể toggle memory/postgres bên dưới      ──
 // ═══════════════════════════════════════════════════════════════════════════════
 
+// ── LUÔN dùng PostgreSQL cho giá dầu & raw SQL (không bao giờ mất khi restart) ──
 export {
   query,
   queryOne,
   execute,
   withTransaction,
+  pool,
   getAllPrices,
   replacePrices,
+} from "./db-postgres.js";
+
+// ── Các bảng còn lại: toggle memory/postgres ─────────────────────────────────
+// Muốn test local  → import từ "./db-memory.js"
+// Muốn production  → import từ "./db-postgres.js"
+export {
   getAllTiers,
   replaceTiers,
   getAllBulkTiers,
@@ -39,6 +47,5 @@ export {
   initDB,
   TABLE_GETTERS,
   TABLE_SETTERS,
-  pool,
 //} from "./db-memory.js";   // ← BẬT DÒNG NÀY ĐỂ TEST LOCAL (không cần PostgreSQL)
 } from "./db-postgres.js";   // ← PRODUCTION: dùng PostgreSQL để dữ liệu không mất khi restart
