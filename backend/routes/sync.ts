@@ -2,7 +2,7 @@ import { Router } from "express";
 import { pool } from "../db.js";
 import { getFallbackConfig, saveFallbackConfig, logAudit } from "../config.js";
 import { FallbackSchema, validateBody } from "../schemas.js";
-import { internalSyncLogic, syncAndSave, clearCache, cronSync } from "../scrapers/petrolimex.js";
+import { internalSyncLogic, syncAndSave, clearCache } from "../scrapers/petrolimex.js";
 import { verifyToken } from "./auth.js";
 
 const router = Router();
@@ -76,23 +76,4 @@ router.post("/petrolimex-sync/clear-cache", (req, res) => {
   res.json({ success: true, message: "Cache đã xóa." });
 });
 
-// ─── Cron sync (external trigger) ─────────────────────────────────────────────
-router.get("/cron/sync", async (req, res) => {
-  const CRON_SECRET = process.env.CRON_SECRET || "logipro_cron_2026";
-  if (req.headers.authorization !== `Bearer ${CRON_SECRET}`) {
-    console.warn("[Cron] ❌ Truy cập trái phép vào endpoint Cron");
-    return res.status(401).json({ success: false, message: "Unauthorized" });
-  }
-
-  try {
-    const result = await syncAndSave(true);
-    res.json(result);
-  } catch (e: any) {
-    console.error("[Cron] 🛑 Lỗi:", e.message);
-    await logAudit("CRON_SYNC_ERROR", `Lỗi cào tự động: ${e.message}`);
-    res.status(500).json({ success: false, message: e.message });
-  }
-});
-
-export { cronSync };
 export default router;

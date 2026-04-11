@@ -7,8 +7,7 @@ import authRouter from "./routes/auth.js";
 import crudRouter from "./routes/crud.js";
 import syncRouter from "./routes/sync.js";
 import publicRouter from "./routes/public.js";
-import { cronSync } from "./scrapers/petrolimex.js";
-import { getVietnamDateTimeParts } from "./utils/vietnamTime.js";
+import { startCronJobs } from "./cron.js";
 
 const app = express();
 app.use(cors());
@@ -26,63 +25,6 @@ app.use("/api/public", publicRouter);
 app.use("/api",        crudRouter);
 app.use("/api",        syncRouter);
 
-// ─── Daily 6:00 AM (Vietnam time) Scheduler ─────────────────────────────────
-function startDailyScheduler() {
-  const SYNC_HOUR = 6;
-  const SYNC_MINUTE = 0;
-
-  function scheduleNext() {
-    const now = new Date();
-    const vn = getVietnamDateTimeParts(now);
-    const pad = (n: number) => String(n).padStart(2, "0");
-
-    let target = new Date(
-      `${vn.year}-${pad(vn.month)}-${pad(vn.day)}T${pad(SYNC_HOUR)}:${pad(SYNC_MINUTE)}:00+07:00`
-    );
-
-    // If target is already past, schedule for tomorrow
-    if (target.getTime() <= now.getTime()) {
-      target = new Date(target.getTime() + 24 * 60 * 60 * 1000);
-    }
-
-    const delay = target.getTime() - now.getTime();
-    const nextStr = target.toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
-    console.log(`[Scheduler] ⏰ Đồng bộ giá tiếp theo lúc ${nextStr} (sau ${Math.round(delay / 60000)} phút)`);
-
-    setTimeout(async () => {
-      try {
-        await cronSync();
-      } catch (e: any) {
-        console.error(`[Scheduler] ❌ Lỗi không mong đợi khi chạy cronSync: ${e.message}`);
-      }
-      scheduleNext();
-    }, delay);
-  }
-
-  scheduleNext();
-
-  // ── Sync ngay khi khởi động nếu hôm nay chưa có giá ──────────────────────
-  setTimeout(async () => {
-    try {
-      const { getVietnamTodayIsoDate } = await import("./utils/vietnamTime.js");
-      const { query: dbQuery } = await import("./db.js");
-      const today = getVietnamTodayIsoDate();
-      const rows = await dbQuery(
-        `SELECT id FROM fuel_prices WHERE date = $1 LIMIT 1`,
-        [today],
-      );
-      if (rows.length === 0) {
-        console.log(`[Scheduler] 🚀 Khởi động: Chưa có giá ngày ${today} → Chạy sync ngay...`);
-        await cronSync();
-      } else {
-        console.log(`[Scheduler] ✅ Khởi động: Đã có giá ngày ${today}, bỏ qua sync.`);
-      }
-    } catch (e: any) {
-      console.error(`[Scheduler] ❌ Lỗi sync khi khởi động: ${e.message}`);
-    }
-  }, 5_000); // Đợi 5 giây cho server ổn định
-}
-
 // ─── Bootstrap ───────────────────────────────────────────────────────────────
 async function bootstrap() {
   // 1. Init database (PostgreSQL hoặc In-Memory tùy công tắc trong db.ts)
@@ -96,12 +38,7 @@ async function bootstrap() {
     console.log("[DB] ⚙️ Bỏ qua seed (đang dùng in-memory mode):", e.message?.slice(0, 80));
   }
 
-  // 3. Start daily price sync scheduler
-  const vnNow = getVietnamDateTimeParts();
-  console.log(`[Boot] TZ=${process.env.TZ || 'unset'} | UTC=${new Date().toISOString()} | VN=${vnNow.year}-${String(vnNow.month).padStart(2,'0')}-${String(vnNow.day).padStart(2,'0')} ${String(vnNow.hour).padStart(2,'0')}:${String(vnNow.minute).padStart(2,'0')}`);
-  startDailyScheduler();
-
-  // 4. Dev or production mode
+  // 3. Dev or production mode
   if (process.env.NODE_ENV !== "production") {
     const viteModule = await import("vite");
     const vite = await viteModule.createServer({
@@ -124,6 +61,9 @@ async function bootstrap() {
       console.log(`[PRODUCTION] Server running on http://localhost:${PORT}`);
     });
   }
+
+  // Khởi động cron job cào giá Petrolimex hằng ngày lúc 6:00 AM (VN)
+  startCronJobs();
 }
 
 bootstrap().catch((err) => {

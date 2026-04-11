@@ -341,51 +341,39 @@ export async function syncAndSave(force = false): Promise<SyncResult & { saved: 
   const today = getVietnamTodayIsoDate();
   const utcNow = new Date().toISOString();
   console.log(`[syncAndSave] UTC=${utcNow} | VN today=${today} | TZ=${process.env.TZ || 'unset'} | price=${result.data.priceV1}`);
-  const { fuelType, priceV1, effectiveDate } = result.data;
-  const effectiveAt = result.data.effectiveAt || null;
+  const { fuelType, priceV1 } = result.data;
 
-  // Luôn lưu vào ngày hôm nay — KHÔNG lưu vào effectiveDate (ngày Petro điều chỉnh)
+  // Bỏ qua ngày hiệu lực của Petrolimex — luôn dùng ngày hiện tại VN lúc 06:00
+  const effectiveAt = `${today}T06:00:00+07:00`;
+
+  // Luôn lưu vào ngày hôm nay (VN) — KHÔNG lưu vào effectiveDate của Petrolimex
   // INSERT nếu hôm nay chưa có, UPDATE nếu hôm nay đã có (cho phép cập nhật trong ngày)
   const upsertResult = await query(
     `INSERT INTO fuel_prices (date, fuel_type, price_v1, effective_at) VALUES ($1, $2, $3, $4)
      ON CONFLICT (date) DO UPDATE SET fuel_type = EXCLUDED.fuel_type, price_v1 = EXCLUDED.price_v1, effective_at = EXCLUDED.effective_at
-     RETURNING (xmax = 0) AS inserted`,
+     RETURNING id, (xmax = 0) AS inserted`,
     [today, fuelType, priceV1, effectiveAt],
   );
-  const wasInserted = upsertResult[0]?.inserted ?? true;
+  const row = upsertResult[0];
+  const wasInserted = row?.inserted ?? true;
+  const savedId = row?.id;
+
+  // Tự động ghim giá mới nhất lên homepage
+  if (savedId) {
+    await execute(`UPDATE fuel_prices SET is_published = FALSE`);
+    await execute(`UPDATE fuel_prices SET is_published = TRUE WHERE id = $1`, [savedId]);
+  }
 
   const action = wasInserted ? "Thêm mới" : "Cập nhật";
-  await logAudit("SYNC_PRICE", `${action} giá: ${priceV1.toLocaleString()}đ ngày ${today} (hiệu lực từ ${effectiveDate}) (${result.data.source})`);
+  await logAudit("SYNC_PRICE", `${action} + ghim giá: ${priceV1.toLocaleString()}đ ngày ${today} (${result.data.source})`);
 
   return {
     ...result,
     saved: true,
     message: wasInserted
-      ? `✅ Đã lưu giá ${priceV1.toLocaleString()}đ cho ngày ${today} (hiệu lực từ ${effectiveDate}).`
-      : `✅ Đã cập nhật giá ${priceV1.toLocaleString()}đ cho ngày ${today} (hiệu lực từ ${effectiveDate}).`,
+      ? `✅ Đã lưu + ghim giá ${priceV1.toLocaleString()}đ cho ngày ${today}.`
+      : `✅ Đã cập nhật + ghim giá ${priceV1.toLocaleString()}đ cho ngày ${today}.`,
   };
 }
 
-// ─── Cron sync (called by daily scheduler) ────────────────────────────────────
-export async function cronSync(): Promise<void> {
-  console.log("[Cron] 🕖 Bắt đầu đồng bộ giá dầu tự động...");
-  try {
-    const result = await syncAndSave(true);
-    if (result.saved) {
-      console.log(`[Cron] ✅ ${result.message}`);
-    } else {
-      console.log(`[Cron] ℹ️ ${result.message}`);
-    }
 
-    // Always publish today's price to homepage
-    const today = getVietnamTodayIsoDate();
-    await execute(`UPDATE fuel_prices SET is_published = FALSE`);
-    await execute(`UPDATE fuel_prices SET is_published = TRUE WHERE date = $1`, [today]);
-    console.log(`[Cron] 📌 Đã ghim giá ngày ${today} lên Trang Chủ`);
-  } catch (e: any) {
-    console.error(`[Cron] ❌ Lỗi đồng bộ: ${e.message}`);
-    try {
-      await logAudit("CRON_SYNC_ERROR", `Lỗi cào tự động: ${e.message}`);
-    } catch (_) { /* Không để logAudit lỗi làm chết scheduler */ }
-  }
-}
