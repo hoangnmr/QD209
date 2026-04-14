@@ -1,13 +1,12 @@
 {
   "name": "react-example",
   "private": true,
-  "version": "1.1.008",
+  "version": "1.1.009",
   "type": "module",
   "scripts": {
     "dev": "tsx backend/server.ts",
     "build": "vite build --config frontend/vite.config.ts",
     "start": "NODE_ENV=production node --import tsx backend/server.ts",
-    "start:win": "set NODE_ENV=production&& node --import tsx backend/server.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "clean": "rm -rf frontend/dist",

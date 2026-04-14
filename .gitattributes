@@ -1,0 +1,3 @@
+# Force LF line endings for all text files (prevent CRLF from Windows)
+* text=auto eol=lf
+*.ps1 text eol=crlf
